@@ -80,19 +80,28 @@ export async function onRequestPost(context) {
     // Googleカレンダー連携（失敗しても予約は成功扱い）
     if (et.use_calendar && et.calendar_credential_id) {
       try {
-        const calId   = et.primary_calendar_id || et.calendar_id;
-        const eventId = await createCalendarEvent(
-          et.calendar_credential_id,
-          db,
-          env,
-          calId,
-          { ...booking, attendee_name, attendee_email, attendee_phone, reason },
-          et.name
-        );
-        await db.update("bk_bookings", { id: `eq.${booking.id}` }, {
-          google_calendar_event_id: eventId,
+        // credential テーブルから primary_calendar_id を取得
+        const credRows = await db.select("bk_calendar_credentials", {
+          id:    `eq.${et.calendar_credential_id}`,
+          limit: "1",
         });
-        booking.google_calendar_event_id = eventId;
+        const cred = credRows?.[0];
+
+        if (cred?.active) {
+          const calId   = cred.primary_calendar_id || "primary";
+          const eventId = await createCalendarEvent(
+            et.calendar_credential_id,
+            db,
+            env,
+            calId,
+            { ...booking, attendee_name, attendee_email, attendee_phone, reason },
+            et.name
+          );
+          await db.update("bk_bookings", { id: `eq.${booking.id}` }, {
+            google_calendar_event_id: eventId,
+          });
+          booking.google_calendar_event_id = eventId;
+        }
       } catch (calErr) {
         console.error("calendar event creation failed:", calErr.message);
       }

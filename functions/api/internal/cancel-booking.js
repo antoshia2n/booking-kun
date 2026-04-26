@@ -50,21 +50,31 @@ export async function onRequestPost(context) {
     // Googleカレンダーからイベント削除（失敗してもキャンセルは成功扱い）
     if (booking.google_calendar_event_id) {
       try {
+        // 1. 予約タイプから credential_id を取得
         const etRows = await db.select("bk_event_types", {
-          id:     `eq.${booking.event_type_id}`,
-          select: "calendar_credential_id,primary_calendar_id,calendar_id",
-          limit:  "1",
+          id:    `eq.${booking.event_type_id}`,
+          limit: "1",
         });
         const et = etRows?.[0];
+
         if (et?.calendar_credential_id) {
-          const calId = et.primary_calendar_id || et.calendar_id;
-          await deleteCalendarEvent(
-            et.calendar_credential_id,
-            db,
-            env,
-            calId,
-            booking.google_calendar_event_id
-          );
+          // 2. credential テーブルから primary_calendar_id を取得
+          const credRows = await db.select("bk_calendar_credentials", {
+            id:    `eq.${et.calendar_credential_id}`,
+            limit: "1",
+          });
+          const cred = credRows?.[0];
+
+          if (cred?.active) {
+            const calId = cred.primary_calendar_id || "primary";
+            await deleteCalendarEvent(
+              et.calendar_credential_id,
+              db,
+              env,
+              calId,
+              booking.google_calendar_event_id
+            );
+          }
         }
       } catch (calErr) {
         console.error("calendar event deletion failed:", calErr.message);

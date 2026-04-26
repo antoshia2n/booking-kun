@@ -88,28 +88,37 @@ export async function onRequestGet(context) {
     // Google カレンダー連携：busy 時間で除外
     if (et.use_calendar && et.calendar_credential_id) {
       try {
-        const busy = await getBusyTimes(
-          et.calendar_credential_id,
-          db,
-          env,
-          et.primary_calendar_id || et.calendar_id,
-          fromUTC,
-          toUTC
-        );
+        // credential テーブルから primary_calendar_id を取得
+        const credRows = await db.select("bk_calendar_credentials", {
+          id:    `eq.${et.calendar_credential_id}`,
+          limit: "1",
+        });
+        const cred = credRows?.[0];
 
-        if (busy.length > 0) {
-          available = available.filter((slotISO) => {
-            const slotStart = new Date(slotISO).getTime();
-            const slotEnd   = slotStart + et.duration_minutes * 60 * 1000;
-            return !busy.some((b) => {
-              const bStart = new Date(b.start).getTime();
-              const bEnd   = new Date(b.end).getTime();
-              return slotStart < bEnd && slotEnd > bStart;
+        if (cred?.active) {
+          const calId = cred.primary_calendar_id || "primary";
+          const busy  = await getBusyTimes(
+            et.calendar_credential_id,
+            db,
+            env,
+            calId,
+            fromUTC,
+            toUTC
+          );
+
+          if (busy.length > 0) {
+            available = available.filter((slotISO) => {
+              const slotStart = new Date(slotISO).getTime();
+              const slotEnd   = slotStart + et.duration_minutes * 60 * 1000;
+              return !busy.some((b) => {
+                const bStart = new Date(b.start).getTime();
+                const bEnd   = new Date(b.end).getTime();
+                return slotStart < bEnd && slotEnd > bStart;
+              });
             });
-          });
+          }
         }
       } catch (calErr) {
-        // カレンダー取得失敗は固定スロットにフォールバック（予約不可にしない）
         console.error("busy times fetch failed:", calErr.message);
       }
     }
