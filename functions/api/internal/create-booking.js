@@ -1,5 +1,6 @@
 import { createDb, ok, err, handleOptions } from "./_db.js";
 import { createCalendarEvent } from "./_calendar.js";
+import { enrollToHighShin, buildBookingMetadata } from "../../lib/enrollToHighShin.js";
 
 function validateSlot(startAtISO, fixedSlots) {
   const date = new Date(startAtISO);
@@ -59,6 +60,7 @@ export async function onRequestPost(context) {
     const endAt       = new Date(new Date(start_at).getTime() + et.duration_minutes * 60 * 1000).toISOString();
     const cancelToken = crypto.randomUUID();
 
+    // 予約 INSERT
     const booking = await db.insert("bk_bookings", {
       user_id:        et.user_id,
       event_type_id,
@@ -73,7 +75,7 @@ export async function onRequestPost(context) {
       cancel_token:   cancelToken,
     });
 
-    // Googleカレンダー連携（失敗しても予約は成功扱い）
+    // ── Phase 2：Googleカレンダー連携（失敗しても予約は成功扱い）
     if (et.use_calendar && et.calendar_credential_id) {
       try {
         const credRows = await db.select("bk_calendar_credentials", {
@@ -98,19 +100,28 @@ export async function onRequestPost(context) {
           booking.google_calendar_event_id = eventId;
         }
       } catch (calErr) {
-        console.error("calendar event creation failed:", calErr.message);
+        console.error("[create-booking] calendar event creation failed:", calErr.message);
       }
     }
 
-    // ─── Phase 3 hook ───────────────────────────────────────────
-    // ここで配信くん（High-Shin）に enroll-to-sequence を呼び出す
-    // trigger_key: `booking_${et.slug}_created`
-    // contact_email: attendee_email
-    // HIGH_SHIN_API_BASE / HIGH_SHIN_INTERNAL_SECRET を使用
-    // Phase 3 実装時にこのコメントを実装コードに置き換える
-    // ────────────────────────────────────────────────────────────
-
     const appBaseUrl = (env.APP_BASE_URL || "https://booking.shia2n.jp").trim();
+
+    // ── Phase 3：配信くん enroll（失敗しても予約は成功扱い）
+    await enrollToHighShin(env, {
+      contact_email: attendee_email,
+      contact_name:  attendee_name,
+      trigger_key:   `booking_${et.slug}_created`,
+      user_id:       et.user_id,
+      metadata:      buildBookingMetadata({
+        booking_id:      booking.id,
+        event_type_name: et.name,
+        start_at:        booking.start_at,
+        end_at:          booking.end_at,
+        duration_minutes: et.duration_minutes,
+        cancel_token:    cancelToken,
+        app_base_url:    appBaseUrl,
+      }),
+    });
 
     return ok({
       booking_id:   booking.id,
