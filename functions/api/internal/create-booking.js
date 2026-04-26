@@ -36,7 +36,6 @@ export async function onRequestPost(context) {
   try {
     const db = createDb(env);
 
-    // 予約タイプ取得
     const etRows = await db.select("bk_event_types", {
       id:     `eq.${event_type_id}`,
       active: "eq.true",
@@ -45,12 +44,10 @@ export async function onRequestPost(context) {
     if (!etRows || etRows.length === 0) return err("予約タイプが見つかりません", 404);
     const et = etRows[0];
 
-    // fixed_slots 検証
     if (et.fixed_slots && !validateSlot(start_at, et.fixed_slots)) {
       return err("指定された日時は予約できません");
     }
 
-    // 重複チェック
     const existing = await db.select("bk_bookings", {
       event_type_id: `eq.${event_type_id}`,
       start_at:      `eq.${new Date(start_at).toISOString()}`,
@@ -62,7 +59,6 @@ export async function onRequestPost(context) {
     const endAt       = new Date(new Date(start_at).getTime() + et.duration_minutes * 60 * 1000).toISOString();
     const cancelToken = crypto.randomUUID();
 
-    // 予約 INSERT
     const booking = await db.insert("bk_bookings", {
       user_id:        et.user_id,
       event_type_id,
@@ -80,7 +76,6 @@ export async function onRequestPost(context) {
     // Googleカレンダー連携（失敗しても予約は成功扱い）
     if (et.use_calendar && et.calendar_credential_id) {
       try {
-        // credential テーブルから primary_calendar_id を取得
         const credRows = await db.select("bk_calendar_credentials", {
           id:    `eq.${et.calendar_credential_id}`,
           limit: "1",
@@ -107,7 +102,15 @@ export async function onRequestPost(context) {
       }
     }
 
-    const appBaseUrl = env.APP_BASE_URL || "https://booking.shia2n.jp";
+    // ─── Phase 3 hook ───────────────────────────────────────────
+    // ここで配信くん（High-Shin）に enroll-to-sequence を呼び出す
+    // trigger_key: `booking_${et.slug}_created`
+    // contact_email: attendee_email
+    // HIGH_SHIN_API_BASE / HIGH_SHIN_INTERNAL_SECRET を使用
+    // Phase 3 実装時にこのコメントを実装コードに置き換える
+    // ────────────────────────────────────────────────────────────
+
+    const appBaseUrl = (env.APP_BASE_URL || "https://booking.shia2n.jp").trim();
 
     return ok({
       booking_id:   booking.id,

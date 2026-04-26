@@ -22,14 +22,17 @@ export async function onRequestGet({ request, env }) {
   const state = url.searchParams.get("state");
   const error = url.searchParams.get("error");
 
-  const appBaseUrl = env.APP_BASE_URL || "https://booking.shia2n.jp";
+  // .trim() で改行・スペース混入を防ぐ（Cloudflare Console でのコピペ事故対策）
+  const clientId     = (env.GOOGLE_CALENDAR_CLIENT_ID     || "").trim();
+  const clientSecret = (env.GOOGLE_CALENDAR_CLIENT_SECRET || "").trim();
+  const redirectUri  = (env.GOOGLE_CALENDAR_REDIRECT_URI  || "").trim();
+  const appBaseUrl   = (env.APP_BASE_URL || "https://booking.shia2n.jp").trim();
 
-  // ユーザーが拒否したケース
   if (error) {
     return new Response(null, {
       status: 302,
       headers: {
-        Location:   `${appBaseUrl}/admin/calendar?error=${encodeURIComponent(error)}`,
+        Location:    `${appBaseUrl}/admin/calendar?error=${encodeURIComponent(error)}`,
         "Set-Cookie": clearStateCookie(),
       },
     });
@@ -39,22 +42,20 @@ export async function onRequestGet({ request, env }) {
     return new Response("code または state が不足しています", { status: 400 });
   }
 
-  // CSRF 対策：Cookie の state と照合
   const cookieState = getCookie(request, "bk_oauth_state");
   if (!cookieState || cookieState !== state) {
     return new Response("state が一致しません（CSRF の可能性）", { status: 400 });
   }
 
   try {
-    // 1. 認証コードをトークンに交換
     const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         code,
-        client_id:     env.GOOGLE_CALENDAR_CLIENT_ID,
-        client_secret: env.GOOGLE_CALENDAR_CLIENT_SECRET,
-        redirect_uri:  env.GOOGLE_CALENDAR_REDIRECT_URI,
+        client_id:     clientId,
+        client_secret: clientSecret,
+        redirect_uri:  redirectUri,
         grant_type:    "authorization_code",
       }),
     });
@@ -68,13 +69,11 @@ export async function onRequestGet({ request, env }) {
     const { access_token, refresh_token, expires_in, scope } = tokenData;
 
     if (!refresh_token) {
-      // prompt=consent を付けていれば通常は返るが、既に許可済みの場合は返らないことがある
       throw new Error(
-        "refresh_token が取得できませんでした。Google Cloud Console の「テストユーザー」から一度このアカウントを削除し、再度連携してください。"
+        "refresh_token が取得できませんでした。Google アカウント設定 → セキュリティ → アクセス権のあるアプリ → booking-kun を削除してから再度連携してください。"
       );
     }
 
-    // 2. ユーザー情報を取得（メールアドレス）
     const userRes = await fetch(GOOGLE_USERINFO_URL, {
       headers: { Authorization: `Bearer ${access_token}` },
     });
@@ -84,19 +83,16 @@ export async function onRequestGet({ request, env }) {
     const expiresAt = new Date(Date.now() + expires_in * 1000).toISOString();
     const scopes    = (scope || "").split(" ").filter(Boolean);
 
-    // 3. bk_calendar_credentials に UPSERT
     const userId = env.DEFAULT_USER_ID;
     const db     = createDb(env);
 
-    // 既存チェック
     const existing = await db.select("bk_calendar_credentials", {
-      user_id: `eq.${userId}`,
+      user_id:      `eq.${userId}`,
       google_email: `eq.${email}`,
-      limit: "1",
+      limit:        "1",
     });
 
     if (existing && existing.length > 0) {
-      // 更新
       await db.update(
         "bk_calendar_credentials",
         { id: `eq.${existing[0].id}` },
@@ -111,7 +107,6 @@ export async function onRequestGet({ request, env }) {
         }
       );
     } else {
-      // 新規挿入
       await db.insert("bk_calendar_credentials", {
         user_id:      userId,
         google_email: email,
@@ -123,7 +118,6 @@ export async function onRequestGet({ request, env }) {
       });
     }
 
-    // 4. 管理画面へリダイレクト（成功）
     return new Response(null, {
       status: 302,
       headers: {

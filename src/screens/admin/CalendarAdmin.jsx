@@ -2,13 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuthUid } from "shia2n-core";
 
-// ─── スタイル ─────────────────────────────────────────────
 const C = {
   bg: "#f5f5f3", surface: "#ffffff", text: "#111110",
   muted: "#888", border: "#e5e5e4", primary: "#2563eb",
   danger: "#dc2626", dangerBg: "#fef2f2", dangerBorder: "#fecaca",
   success: "#16a34a", successBg: "#f0fdf4", successBorder: "#bbf7d0",
-  warn: "#d97706",
 };
 
 const S = {
@@ -17,6 +15,8 @@ const S = {
     fontFamily: "'Hiragino Sans', 'Noto Sans JP', 'YuGothic', sans-serif",
   },
   container: { width: "100%", maxWidth: 560, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 },
+  nav: { display: "flex", gap: 16, alignItems: "center", marginBottom: 4 },
+  navLink: { fontSize: 12, color: C.muted, textDecoration: "none" },
   h1: { fontSize: 18, fontWeight: 700, color: C.text, margin: 0 },
   primaryBtn: {
     padding: "10px 16px", borderRadius: 8, border: "none",
@@ -65,7 +65,6 @@ function apiHeaders(uid) {
   return { "Content-Type": "application/json", "X-User-Id": uid };
 }
 
-// ─── 連携アカウントカード ─────────────────────────────────
 function CredentialCard({ cred, uid, onUpdated }) {
   const [displayName, setDisplayName] = useState(cred.display_name || "");
   const [calendars,   setCalendars]   = useState(null);
@@ -193,7 +192,6 @@ function CredentialCard({ cred, uid, onUpdated }) {
   );
 }
 
-// ─── メイン画面 ───────────────────────────────────────────
 export default function CalendarAdmin() {
   const uid                   = useAuthUid();
   const [searchParams]        = useSearchParams();
@@ -229,6 +227,12 @@ export default function CalendarAdmin() {
   return (
     <div style={S.page}>
       <div style={S.container}>
+        {/* ナビゲーション */}
+        <nav style={S.nav}>
+          <a href="/" style={S.navLink}>← ホーム</a>
+          <a href="/admin/event-types" style={S.navLink}>予約タイプ管理</a>
+        </nav>
+
         <div style={S.row}>
           <h1 style={{ ...S.h1, flex: 1 }}>連携カレンダー</h1>
           <a href="/api/calendar/oauth-start" style={{ textDecoration: "none" }}>

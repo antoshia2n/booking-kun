@@ -13,6 +13,8 @@ const S = {
     fontFamily: "'Hiragino Sans', 'Noto Sans JP', 'YuGothic', sans-serif",
   },
   container: { width: "100%", maxWidth: 560, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 },
+  nav: { display: "flex", gap: 16, alignItems: "center", marginBottom: 4 },
+  navLink: { fontSize: 12, color: C.muted, textDecoration: "none" },
   h1: { fontSize: 18, fontWeight: 700, color: C.text, margin: 0 },
   card: {
     background: C.surface, borderRadius: 12, padding: 16, border: `1px solid ${C.border}`,
@@ -38,10 +40,6 @@ const S = {
     color: on ? C.primary : C.muted,
     fontSize: 13, fontWeight: 600, userSelect: "none",
   }),
-  toast: {
-    padding: "10px 14px", borderRadius: 8, fontSize: 13,
-    background: C.successBg, border: `1px solid ${C.successBorder}`, color: C.success,
-  },
   muted: { fontSize: 12, color: C.muted },
 };
 
@@ -59,15 +57,14 @@ function EventTypeCard({ et, creds, uid, onSaved }) {
     setSaving(true);
     setSaved(false);
     try {
-      const body = {
-        event_type_id:         et.id,
-        use_calendar:          useCalendar,
-        calendar_credential_id: useCalendar && credId ? credId : null,
-      };
       const res  = await fetch("/api/internal/update-event-type", {
         method: "POST",
         headers: apiHeaders(uid),
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          event_type_id:          et.id,
+          use_calendar:           useCalendar,
+          calendar_credential_id: useCalendar && credId ? credId : null,
+        }),
       });
       const json = await res.json();
       if (json.error) throw new Error(json.error);
@@ -143,17 +140,17 @@ function EventTypeCard({ et, creds, uid, onSaved }) {
 }
 
 export default function EventTypesAdmin() {
-  const uid                       = useAuthUid();
+  const uid                         = useAuthUid();
   const [eventTypes, setEventTypes] = useState([]);
-  const [creds,      setCreds]     = useState([]);
-  const [loading,    setLoading]   = useState(true);
+  const [creds,      setCreds]      = useState([]);
+  const [loading,    setLoading]    = useState(true);
 
   async function loadAll() {
     if (!uid) return;
     try {
       const [etRes, credRes] = await Promise.all([
-        fetch(`/api/internal/list-event-types?user_id=${uid}`, { headers: { "X-User-Id": uid } }),
-        fetch(`/api/internal/list-calendar-credentials?user_id=${uid}`, { headers: { "X-User-Id": uid } }),
+        fetch(`/api/internal/list-event-types?user_id=${uid}`, { headers: apiHeaders(uid) }),
+        fetch(`/api/internal/list-calendar-credentials?user_id=${uid}`, { headers: apiHeaders(uid) }),
       ]);
       const etJson   = await etRes.json();
       const credJson = await credRes.json();
@@ -171,6 +168,12 @@ export default function EventTypesAdmin() {
   return (
     <div style={S.page}>
       <div style={S.container}>
+        {/* ナビゲーション */}
+        <nav style={S.nav}>
+          <a href="/" style={S.navLink}>← ホーム</a>
+          <a href="/admin/calendar" style={S.navLink}>連携カレンダー</a>
+        </nav>
+
         <h1 style={S.h1}>予約タイプ管理</h1>
 
         {loading && <div style={{ fontSize: 13, color: C.muted }}>読み込み中...</div>}

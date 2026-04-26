@@ -10,8 +10,9 @@ const SCOPES = [
 ].join(" ");
 
 export async function onRequestGet({ request, env }) {
-  const clientId    = env.GOOGLE_CALENDAR_CLIENT_ID;
-  const redirectUri = env.GOOGLE_CALENDAR_REDIRECT_URI;
+  // .trim() で改行・スペース混入を防ぐ（Cloudflare Console でのコピペ事故対策）
+  const clientId    = (env.GOOGLE_CALENDAR_CLIENT_ID    || "").trim();
+  const redirectUri = (env.GOOGLE_CALENDAR_REDIRECT_URI || "").trim();
 
   if (!clientId || !redirectUri) {
     return new Response(
@@ -20,7 +21,6 @@ export async function onRequestGet({ request, env }) {
     );
   }
 
-  // ランダム state 生成（CSRF 対策）
   const state  = crypto.randomUUID();
   const params = new URLSearchParams({
     client_id:     clientId,
@@ -28,11 +28,10 @@ export async function onRequestGet({ request, env }) {
     response_type: "code",
     scope:         SCOPES,
     access_type:   "offline",
-    prompt:        "consent",  // 毎回 refresh_token を取得するため
+    prompt:        "consent",
     state,
   });
 
-  // state を HttpOnly Cookie に保存（30分有効）
   const cookieValue = [
     `bk_oauth_state=${state}`,
     "Path=/",
@@ -45,7 +44,7 @@ export async function onRequestGet({ request, env }) {
   return new Response(null, {
     status: 302,
     headers: {
-      Location:   `${GOOGLE_AUTH_URL}?${params.toString()}`,
+      Location:    `${GOOGLE_AUTH_URL}?${params.toString()}`,
       "Set-Cookie": cookieValue,
     },
   });
