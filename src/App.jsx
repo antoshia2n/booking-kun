@@ -14,24 +14,41 @@ const S = {
     fontFamily: "'Hiragino Sans', 'Noto Sans JP', 'YuGothic', sans-serif",
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 700,
     color: T.text,
-    letterSpacing: "0.02em",
   },
   sub: {
     fontSize: 12,
     color: T.muted,
-    letterSpacing: "0.03em",
+  },
+  card: {
+    background: T.surface,
+    borderRadius: 10,
+    padding: "16px 20px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    width: "100%",
+    maxWidth: 400,
+  },
+  label: {
+    fontSize: 10,
+    fontWeight: 600,
+    color: T.muted,
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+  },
+  link: {
+    fontSize: 13,
+    color: T.primary ?? "#3b82f6",
+    textDecoration: "none",
+    fontFamily: "'DM Mono', monospace",
   },
   uid: {
     fontSize: 11,
     color: T.muted,
-    fontFamily: "'DM Mono', 'JetBrains Mono', monospace",
-    background: T.surface,
-    padding: "6px 12px",
-    borderRadius: 6,
-    marginTop: 8,
+    fontFamily: "'DM Mono', monospace",
   },
 };
 
@@ -41,7 +58,18 @@ export default function App() {
   return (
     <div style={S.wrap}>
       <div style={S.title}>{APP_NAME}</div>
-      <div style={S.sub}>Booking-kun — Phase 0</div>
+      <div style={S.sub}>管理画面は Phase 4 で実装予定</div>
+
+      <div style={S.card}>
+        <div style={S.label}>予約フォーム（公開）</div>
+        <a
+          href="/book/consultation"
+          style={S.link}
+        >
+          /book/consultation
+        </a>
+      </div>
+
       <div style={S.uid}>uid: {uid ?? "—"}</div>
     </div>
   );
