@@ -1,11 +1,13 @@
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Link } from "react-router-dom";
 import { AuthGuard } from "shia2n-core";
 import { APP_ID, APP_NAME } from "./constants.js";
 import App from "./App.jsx";
-import BookingForm from "./screens/BookingForm.jsx";
+import BookingForm    from "./screens/BookingForm.jsx";
 import BookingConfirm from "./screens/BookingConfirm.jsx";
-import BookingCancel from "./screens/BookingCancel.jsx";
+import BookingCancel  from "./screens/BookingCancel.jsx";
+import CalendarAdmin  from "./screens/admin/CalendarAdmin.jsx";
+import EventTypesAdmin from "./screens/admin/EventTypesAdmin.jsx";
 
 function Root() {
   const { pathname } = useLocation();
@@ -24,7 +26,9 @@ function Root() {
   return (
     <AuthGuard appId={APP_ID} appName={APP_NAME}>
       <Routes>
-        <Route path="*" element={<App />} />
+        <Route path="/admin/calendar"    element={<CalendarAdmin />} />
+        <Route path="/admin/event-types" element={<EventTypesAdmin />} />
+        <Route path="*"                  element={<App />} />
       </Routes>
     </AuthGuard>
   );

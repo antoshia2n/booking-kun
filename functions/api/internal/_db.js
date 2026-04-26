@@ -68,7 +68,7 @@ export function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-User-Id",
     "Content-Type": "application/json",
   };
 }
@@ -87,9 +87,22 @@ export function err(message, status = 400) {
   });
 }
 
+/**
+ * 2つの認証モードをサポート：
+ * 1. AI/MCP 用：Authorization: Bearer {BK_INTERNAL_SECRET}
+ * 2. 管理UI 用：X-User-Id: {firebase_uid}（DEFAULT_USER_ID と照合）
+ *    ※ BK_INTERNAL_SECRET をブラウザに渡さないためのパターンO対策
+ */
 export function checkAuth(request, env) {
+  // モード1：Bearer トークン
   const auth = request.headers.get("Authorization") ?? "";
-  return auth === `Bearer ${env.BK_INTERNAL_SECRET}`;
+  if (env.BK_INTERNAL_SECRET && auth === `Bearer ${env.BK_INTERNAL_SECRET}`) return true;
+
+  // モード2：X-User-Id（管理UI用）
+  const uid = request.headers.get("X-User-Id") ?? "";
+  if (uid && env.DEFAULT_USER_ID && uid === env.DEFAULT_USER_ID) return true;
+
+  return false;
 }
 
 export function handleOptions() {

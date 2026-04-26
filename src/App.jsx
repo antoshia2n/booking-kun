@@ -3,53 +3,20 @@ import { APP_NAME } from "./constants.js";
 
 const S = {
   wrap: {
-    minHeight: "100vh",
-    background: T.bg,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 16,
-    padding: 24,
+    minHeight: "100vh", background: T.bg,
+    display: "flex", flexDirection: "column", alignItems: "center",
+    justifyContent: "center", gap: 12, padding: 24,
     fontFamily: "'Hiragino Sans', 'Noto Sans JP', 'YuGothic', sans-serif",
   },
-  title: {
-    fontSize: 18,
-    fontWeight: 700,
-    color: T.text,
-  },
-  sub: {
-    fontSize: 12,
-    color: T.muted,
-  },
+  title:   { fontSize: 18, fontWeight: 700, color: T.text },
   card: {
-    background: T.surface,
-    borderRadius: 10,
-    padding: "16px 20px",
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-    width: "100%",
-    maxWidth: 400,
+    background: T.surface, borderRadius: 10, padding: "14px 18px",
+    display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: 400,
+    border: `1px solid ${T.border ?? "#e5e5e4"}`,
   },
-  label: {
-    fontSize: 10,
-    fontWeight: 600,
-    color: T.muted,
-    textTransform: "uppercase",
-    letterSpacing: "0.5px",
-  },
-  link: {
-    fontSize: 13,
-    color: T.primary ?? "#3b82f6",
-    textDecoration: "none",
-    fontFamily: "'DM Mono', monospace",
-  },
-  uid: {
-    fontSize: 11,
-    color: T.muted,
-    fontFamily: "'DM Mono', monospace",
-  },
+  label:   { fontSize: 10, fontWeight: 600, color: T.muted, textTransform: "uppercase", letterSpacing: "0.5px" },
+  link:    { fontSize: 13, color: "#2563eb", textDecoration: "none" },
+  uid:     { fontSize: 11, color: T.muted, fontFamily: "'DM Mono', monospace" },
 };
 
 export default function App() {
@@ -58,16 +25,16 @@ export default function App() {
   return (
     <div style={S.wrap}>
       <div style={S.title}>{APP_NAME}</div>
-      <div style={S.sub}>管理画面は Phase 4 で実装予定</div>
 
       <div style={S.card}>
         <div style={S.label}>予約フォーム（公開）</div>
-        <a
-          href="/book/consultation"
-          style={S.link}
-        >
-          /book/consultation
-        </a>
+        <a href="/book/consultation" style={S.link}>/book/consultation</a>
+      </div>
+
+      <div style={S.card}>
+        <div style={S.label}>管理</div>
+        <a href="/admin/calendar"    style={S.link}>連携カレンダー</a>
+        <a href="/admin/event-types" style={S.link}>予約タイプ管理</a>
       </div>
 
       <div style={S.uid}>uid: {uid ?? "—"}</div>
